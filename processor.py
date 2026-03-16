@@ -64,16 +64,19 @@ def sw(src, imm, rs1):
     mem[reg[rs1] + imm] = reg[src]
 
 def beq(rs1, rs2, label):
+    global pc
     if label in sections:
         if reg[rs1] == reg[rs2]:
             pc = sections[label]
 
-def j(lable):
+def j(label):
+    global pc
     if label in sections:
         pc = sections[label]
 
 def jal(rd, imm):
-    rd = pc + 1
+    global pc
+    reg[rd] = pc + 1
     if isinstance(imm, str):
         if imm in sections:
             pc = sections[imm]
