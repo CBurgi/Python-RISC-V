@@ -225,9 +225,22 @@ program4 = [
     "J done"
 ]
 
+args = [
+    '-v',
+    '-s',
+    '-r'
+]
 if __name__ == "__main__":
     v = '-v' in sys.argv
     s = '-s' in sys.argv
-    file = '-r' in sys.argv and sys.argv[sys.argv.index('-r') + 1]
+    if '-r' in sys.argv:
+        try:
+            file = sys.argv[sys.argv.index('-r') + 1]
+            if file in args:
+                raise IndexError
+            open(file, 'r')
+        except:
+            print("Add valid file path as argument after -r")
+            exit(1)
     p = Processor(v, s, file)
     p.run(program4)
