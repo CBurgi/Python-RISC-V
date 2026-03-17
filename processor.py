@@ -113,63 +113,66 @@ class Processor:
             print(f"{r}: {self.reg[r]}")
 
     def run(self, program):
-        self.pc = 0
-        for r in self.reg:
-            self.reg[r] = 0
-        self.mem = [0] * 32  # data memory
+        try:
+            self.pc = 0
+            for r in self.reg:
+                self.reg[r] = 0
+            self.mem = [0] * 32  # data memory
 
-        self.prog_mem = []
-        self.sections = {}  # map pc count to section
+            self.prog_mem = []
+            self.sections = {}  # map pc count to section
 
-        # load program into prog mem
-        if self.file:
-            program = self.file
-        index = 0
-        print(program)
-        for line in program:
-            if line.endswith(":"):
-                section = line[:-1]
-                self.sections[section] = index
-            else:
-                command = line.split(" ")
-                opcode = command[0].lower()
-                args = command[1:]
-                if opcode in opcodes and opcodes[opcode] == len(args):
-                    self.prog_mem.append(
-                        {"opcode": opcode, "args": args}
+            # load program into prog mem
+            if self.file:
+                program = self.file
+            index = 0
+            print(program)
+            for line in program:
+                if line.endswith(":"):
+                    section = line[:-1]
+                    self.sections[section] = index
+                else:
+                    command = line.split(" ")
+                    opcode = command[0].lower()
+                    args = command[1:]
+                    if opcode in opcodes and opcodes[opcode] == len(args):
+                        self.prog_mem.append(
+                            {"opcode": opcode, "args": args}
+                        )
+                        index += 1
+
+            i_count = 0
+            c_count = 0
+
+            # run program
+            while True:
+                c_count += 1
+
+                i_count += 1
+                line = self.prog_mem[self.pc]
+                func = getattr(self, line["opcode"])
+                inc = func(*line["args"])
+                if inc:
+                    self.pc += 1
+                if self.s:
+                    input("Enter to step")
+                if self.v:
+                    self.print_metrics(
+                        f"{line['opcode']} {' '.join(line['args'])}",
+                        i_count,
+                        c_count
                     )
-                    index += 1
-
-        i_count = 0
-        c_count = 0
-
-        # run program
-        while True:
-            c_count += 1
-
-            i_count += 1
-            line = self.prog_mem[self.pc]
-            func = getattr(self, line["opcode"])
-            inc = func(*line["args"])
-            if inc:
-                self.pc += 1
-            if self.s:
-                input("Enter to step")
-            if self.v:
-                self.print_metrics(
-                    f"{line['opcode']} {' '.join(line['args'])}",
-                    i_count,
-                    c_count
-                )
-            if self.pc >= len(self.prog_mem):
-                break
-
-        # print results
-        self.print_metrics(
-            "-------Program Finished-------",
-            i_count,
-            c_count
-        )
+                if self.pc >= len(self.prog_mem):
+                    break
+        except:
+            print("Program failed")
+        finally:
+            # print results
+            self.print_metrics(
+                "-------Program Finished-------",
+                i_count,
+                c_count
+            )
 
 
 program1 = [
@@ -233,6 +236,7 @@ args = [
 if __name__ == "__main__":
     v = '-v' in sys.argv
     s = '-s' in sys.argv
+    file = False
     if '-r' in sys.argv:
         try:
             file = sys.argv[sys.argv.index('-r') + 1]
