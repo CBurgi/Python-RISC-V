@@ -1,144 +1,233 @@
-pc = 0
+import sys
+import os
 
-reg = [0] * 32 #registers (no fp)
-x0 = zero = 0
-x1 = ra = 1
-x2 = sp = 2
-x3 = gp = 3
-x4 = tp = 4
-x5 = t0 = 5
-x6 = t1 = 6
-x7 = t2 = 7
-x8 = s0 = fp = 8
-x9 = s1 = 9
-x10 = a0 = 10
-x11 = a1 = 11
-x12 = a2 = 12
-x13 = a3 = 13
-x14 = a4 = 14
-x15 = a5 = 15
-x16 = a6 = 16
-x17 = a7 = 17
-x18 = s2 = 18
-x19 = s3 = 19
-x20 = s4 = 20
-x21 = s5 = 21
-x22 = s6 = 22
-x23 = s7 = 23
-x24 = s8 = 24
-x25 = s9 = 25
-x26 = s10 = 26
-x27 = s11 = 27
-x28 = t3 = 28
-x29 = t4 = 29
-x30 = t5 = 30
-x31 = t6 = 31
+# opcodes and their argument count
+opcodes = {
+    "add": 3,
+    "sub": 3,
+    "addi": 3,
+    "subi": 3,
+    "li": 2,
+    "lw": 3,
+    "sw": 3,
+    "beq": 3,
+    "jal": 2,
+    "jalr": 3,
+    "j": 1
+}
 
-mem = [0] * 32 #data memory
-
-prog_mem = []
-sections = [] #map pc count to section
-
-#ADD, SUB, LI, LW, SW, BEQ, JAL
-def add(rd, rs1, rs2):
-    if rd == 0:
-        return
-    reg[rd] = reg[rs1] + reg[rs2]
-
-def sub(rd, rs1, rs2):
-    if rd == 0:
-        return
-    reg[rd] = reg[rs1] - reg[rs2]
-
-def li(rd, imm):
-    if rd == 0:
-        return
-    reg[rd] = imm
-
-def lw(rd, imm, rs1):
-    if rd == 0:
-        return
-    reg[rd] = mem[reg[rs1] + imm]
-
-def sw(src, imm, rs1):
-    mem[reg[rs1] + imm] = reg[src]
-
-def beq(rs1, rs2, label):
-    global pc
-    if label in sections:
-        if reg[rs1] == reg[rs2]:
-            pc = sections[label]
-
-def j(label):
-    global pc
-    if label in sections:
-        pc = sections[label]
-
-def jal(rd, imm):
-    global pc
-    reg[rd] = pc + 1
-    if isinstance(imm, str):
-        if imm in sections:
-            pc = sections[imm]
-    else:
-        pc += imm
 
 class Processor:
-    pc = 0
-    i_count = 0
-    c_count = 0
-    
-  
-  
-  
+    def __init__(self, v, s, file):
+        self.v = v
+        self.s = s
+
+        self.file = []
+        if file:
+            with open(file, 'r') as f:
+                for line in f:
+                    self.file.append(line.strip())
+        else:
+            self.file = file
+
+        self.pc = 0
+        self.reg = {}
+        for i in range(32):
+            self.reg[f"x{i}"] = 0
+        self.mem = [0] * 32  # data memory
+
+        self.prog_mem = []
+        self.sections = {}  # map pc count to section
+
+    # ADD, SUB, LI, LW, SW, BEQ, JAL
+
+    def add(self, rd, rs1, rs2):
+        if rd != 0:
+            self.reg[rd] = self.reg[rs1] + self.reg[rs2]
+        return True
+
+    def sub(self, rd, rs1, rs2):
+        if rd != 0:
+            self.reg[rd] = self.reg[rs1] - self.reg[rs2]
+        return True
+
+    def addi(self, rd, rs1, imm):
+        if rd != 0:
+            self.reg[rd] = self.reg[rs1] + int(imm)
+        return True
+
+    def subi(self, rd, rs1, imm):
+        if rd != 0:
+            self.reg[rd] = self.reg[rs1] - int(imm)
+        return True
+
+    def li(self, rd, imm):
+        self.addi(rd, 'x0', imm)
+        return True
+
+    def lw(self, rd, imm, rs1):
+        if rd != 0:
+            self.reg[rd] = self.mem[self.reg[rs1] + int(imm)]
+        return True
+
+    def sw(self, src, imm, rs1):
+        self.mem[self.reg[rs1] + int(imm)] = self.reg[src]
+        return True
+
+    def beq(self, rs1, rs2, label):
+        if label in self.sections:
+            if self.reg[rs1] == self.reg[rs2]:
+                self.pc = self.sections[label]
+                return False
+        return True
+
+    def jal(self, rd, imm):
+        if rd != 0:
+            self.reg[rd] = self.pc + 1
+        if isinstance(imm, str):
+            if imm in self.sections:
+                self.pc = self.sections[imm]
+        else:
+            self.pc = int(imm)
+        return False
+
+    def j(self, imm):
+        self.jal('x0', imm)
+        return False
+
+    def jalr(self, rd, rs1, imm):
+        if rd != 0:
+            self.reg[rd] = self.pc + 1
+        self.pc = self.reg[rs1] + int(imm)
+        return False
+
+    def print_metrics(self, title, i, c):
+        os.system('clear')
+        print(title)
+        print("Metrics:")
+        print(f"{i} instructions, {c} cycles")
+        print("")
+        print("Registers:")
+        print(f"PC: {self.pc}")
+        for r in self.reg:
+            print(f"{r}: {self.reg[r]}")
+
+    def run(self, program):
+        self.pc = 0
+        for r in self.reg:
+            self.reg[r] = 0
+        self.mem = [0] * 32  # data memory
+
+        self.prog_mem = []
+        self.sections = {}  # map pc count to section
+
+        # load program into prog mem
+        if self.file:
+            program = self.file
+        index = 0
+        print(program)
+        for line in program:
+            if line.endswith(":"):
+                section = line[:-1]
+                self.sections[section] = index
+            else:
+                command = line.split(" ")
+                opcode = command[0].lower()
+                args = command[1:]
+                if opcode in opcodes and opcodes[opcode] == len(args):
+                    self.prog_mem.append(
+                        {"opcode": opcode, "args": args}
+                    )
+                    index += 1
+
+        i_count = 0
+        c_count = 0
+
+        # run program
+        while True:
+            c_count += 1
+
+            i_count += 1
+            line = self.prog_mem[self.pc]
+            func = getattr(self, line["opcode"])
+            inc = func(*line["args"])
+            if inc:
+                self.pc += 1
+            if self.s:
+                input("Enter to step")
+            if self.v:
+                self.print_metrics(
+                    f"{line['opcode']} {' '.join(line['args'])}",
+                    i_count,
+                    c_count
+                )
+            if self.pc >= len(self.prog_mem):
+                break
+
+        # print results
+        self.print_metrics(
+            "-------Program Finished-------",
+            i_count,
+            c_count
+        )
+
+
 program1 = [
-    "li 2 1" 
-    "li 3 10"
-    "add 2 3 2"
-    "add 2 3 2"
-    "add 2 3 2"
-    "add 2 3 2"
-    "add 2 3 2"
-    
+    "li x2 1",
+    "li x3 10",
+    "add x2 x3 x2",
+    "add x2 x3 x2",
+    "add x2 x3 x2",
+    "add x2 x3 x2",
+    "add x2 x3 x2"
+
 ]
 
 program2 = [
-    "li 2 123353"
-    "li 3 45551"
-    
-    "sub 2 3 2"
-    "sub 2 3 2"
-    "sub 2 3 2"
-    "sub 2 3 2"
-    "sub 2 3 2"
+    "li x2 123353",
+    "li x3 45551",
+
+    "sub x2 x3 x2",
+    "sub x2 x3 x2",
+    "sub x2 x3 x2",
+    "sub x2 x3 x2",
+    "sub x2 x3 x2"
 
 ]
 
 program3 = [
-    "li 2 577"
-    "li 3 555"
-    "li 5 443"
-    "SUB 2 3 2"
-    "SUB 2 3 2"
-    "ADD 2 5 3"
-    "ADD 2 2 2"
-    "SUB 2 3 2"
-    "SUB 2 3 2"
-    "SUB 2 3 2"
-    "ADD 5 3 2"
-    "ADD 3 2 3"
+    "li x2 577",
+    "li x3 555",
+    "li x5 443",
+    "SUB x2 x3 x2",
+    "SUB x2 x3 x2",
+    "ADD x2 x5 x3",
+    "ADD x2 x2 x2",
+    "SUB x2 x3 x2",
+    "SUB x2 x3 x2",
+    "SUB x2 x3 x2",
+    "ADD x5 x3 x2",
+    "ADD x3 x2 x3"
 ]
 
 program4 = [
-    "start:"
-        "LI 3 1"
-        "LI 5 10"
-    "count_loop:"
-        "BEQ 3, 5, done"
-        "JAL increment"
-        "J count_loop"
-    "increment:"
-        "ADD 3 3 1"
-    "done:"
-        "J done"
-] 
+    "start:",
+    "LI x3 1",
+    "LI x5 10",
+    "count_loop:",
+    "BEQ x3 x5 done",
+    "JAL x1 increment",
+    "J count_loop",
+    "increment:",
+    "ADDi x3 x3 1",
+    "Jalr x0 x1 0",
+    "done:",
+    "J done"
+]
+
+if __name__ == "__main__":
+    v = '-v' in sys.argv
+    s = '-s' in sys.argv
+    file = '-r' in sys.argv and sys.argv[sys.argv.index('-r') + 1]
+    p = Processor(v, s, file)
+    p.run(program4)
