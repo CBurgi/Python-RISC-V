@@ -42,22 +42,22 @@ class Processor:
     # ADD, SUB, LI, LW, SW, BEQ, JAL
 
     def add(self, rd, rs1, rs2):
-        if rd != 0:
+        if rd != 'x0':
             self.reg[rd] = self.reg[rs1] + self.reg[rs2]
         return True
 
     def sub(self, rd, rs1, rs2):
-        if rd != 0:
+        if rd != 'x0':
             self.reg[rd] = self.reg[rs1] - self.reg[rs2]
         return True
 
     def addi(self, rd, rs1, imm):
-        if rd != 0:
+        if rd != 'x0':
             self.reg[rd] = self.reg[rs1] + int(imm)
         return True
 
     def subi(self, rd, rs1, imm):
-        if rd != 0:
+        if rd != 'x0':
             self.reg[rd] = self.reg[rs1] - int(imm)
         return True
 
@@ -66,7 +66,7 @@ class Processor:
         return True
 
     def lw(self, rd, imm, rs1):
-        if rd != 0:
+        if rd != 'x0':
             self.reg[rd] = self.mem[self.reg[rs1] + int(imm)]
         return True
 
@@ -82,7 +82,7 @@ class Processor:
         return True
 
     def jal(self, rd, imm):
-        if rd != 0:
+        if rd != 'x0':
             self.reg[rd] = self.pc + 1
         if isinstance(imm, str):
             if imm in self.functions:
@@ -96,7 +96,7 @@ class Processor:
         return False
 
     def jalr(self, rd, rs1, imm):
-        if rd != 0:
+        if rd != 'x0':
             self.reg[rd] = self.pc + 1
         self.pc = self.reg[rs1] + int(imm)
         return False
@@ -225,17 +225,17 @@ program3 = [
 
 program4 = [
     "start:",
-    "LI x3 1",
-    "LI x5 10",
+        "LI x3 1",
+        "LI x5 10",
     "count_loop:",
-    "BEQ x3 x5 done",
-    "JAL x1 increment",
-    "J count_loop",
+        "BEQ x3 x5 done",
+        "JAL x1 increment",
+        "J count_loop",
     "increment:",
-    "ADDi x3 x3 1",
-    "Jalr x0 x1 0",
+        "ADDi x3 x3 1",
+        "Jalr x0 x1 0",
     "done:",
-    "J done"
+        "J done"
 ]
 
 args = [
