@@ -109,8 +109,18 @@ class Processor:
         print("")
         print("Registers:")
         print(f"PC: {self.pc}")
-        for r in self.reg:
-            print(f"{r}: {self.reg[r]}")
+        items = list(self.reg.items())
+        for i in range(0, 32, 8):
+            row = items[i:i + 8]
+            # Join the elements of the row with a tab
+            print("\t".join([f"{k}: {v}" for k, v in row]))
+
+        if(any(self.mem)):
+            str_mem = [str(item) for item in self.mem]
+            print("")
+            print("Memory:")
+            for i in range(4):
+                print('\t'.join(str_mem[8*i:8*i+8]))
 
     def run(self, program):
         try:
