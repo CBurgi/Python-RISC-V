@@ -37,7 +37,7 @@ class Processor:
         self.mem = [0] * 32  # data memory
 
         self.prog_mem = []
-        self.sections = {}  # map pc count to section
+        self.functions = {}  # map pc count to function
 
     # ADD, SUB, LI, LW, SW, BEQ, JAL
 
@@ -75,9 +75,9 @@ class Processor:
         return True
 
     def beq(self, rs1, rs2, label):
-        if label in self.sections:
+        if label in self.functions:
             if self.reg[rs1] == self.reg[rs2]:
-                self.pc = self.sections[label]
+                self.pc = self.functions[label]
                 return False
         return True
 
@@ -85,8 +85,8 @@ class Processor:
         if rd != 0:
             self.reg[rd] = self.pc + 1
         if isinstance(imm, str):
-            if imm in self.sections:
-                self.pc = self.sections[imm]
+            if imm in self.functions:
+                self.pc = self.functions[imm]
         else:
             self.pc = int(imm)
         return False
@@ -130,7 +130,7 @@ class Processor:
             self.mem = [0] * 32  # data memory
 
             self.prog_mem = []
-            self.sections = {}  # map pc count to section
+            self.functions = {}  # map pc count to function
 
             # load program into prog mem
             if self.file:
@@ -139,8 +139,8 @@ class Processor:
             print(program)
             for line in program:
                 if line.endswith(":"):
-                    section = line[:-1]
-                    self.sections[section] = index
+                    function = line[:-1]
+                    self.functions[function] = index
                 else:
                     command = line.split(" ")
                     opcode = command[0].lower()
